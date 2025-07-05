@@ -53,9 +53,8 @@ def save_rotation_data(data):
     with open("rotation_data.json", "w") as file:
         json.dump(data, file, indent=2)
 
-# message sent before the meeting to the user 
-@app.route("/notify", methods=["GET"])
-def notify_user():
+
+def notify_current_user():
     data = load_rotation_data()
     index = data["current_index"]
     current_user = data["members"][index]
@@ -65,10 +64,20 @@ def notify_user():
 
     client.chat_postMessage(
         channel=dm_channel,
-        text=f"👋 Hi <@{current_user}>! Just a reminder — it's your turn to attend the general meeting this week. 🗓️"
+        text=f"👋 Hello Toyo vro <@{current_user}>! It’s your turn to attend the general meeting this week. 🗓️"
     )
 
-    return f"Notification sent to <@{current_user}>.", 200
+    # Schedule follow-up in 30 seconds
+    run_time = datetime.now() + timedelta(seconds=10)
+    scheduler.add_job(func=call_followup, trigger="date", run_date=run_time)
+
+    return current_user
+
+# message sent before the meeting to the user 
+@app.route("/notify", methods=["GET"])
+def notify_route():
+    user = notify_current_user()
+    return f"Notification sent to <@{user}>.", 200
 
 
 #message sent after the meeting:
@@ -153,6 +162,11 @@ def handle_interactions():
                 channel=user_id,
                 text="✅ Great, you're marked as attended! You've been rotated out."
             )
+
+            # Notify the next person after x time
+            time.sleep(10)
+            notify_current_user()
+
         else:
             client.chat_postMessage(
                 channel=user_id,
@@ -192,8 +206,6 @@ def schedule_notifications():
         f"✅ Scheduled notify at {notify_time.strftime('%H:%M:%S')} and "
         f"follow-up at {followup_time.strftime('%H:%M:%S')}", 200
     )
-
-
 
 
 # 🔸 Entry point
