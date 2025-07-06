@@ -64,11 +64,11 @@ def notify_current_user():
 
     client.chat_postMessage(
         channel=dm_channel,
-        text=f"👋 Hello Toyo vro <@{current_user}>! It’s your turn to attend the general meeting this week. 🗓️"
+        text=f"👋 Hey <@{current_user}>!\n Just a reminder that it's your turn this week to attend the roundtable meeting. 🗓️"
     )
 
-    # Schedule follow-up in 30 seconds
-    run_time = datetime.now() + timedelta(seconds=10)
+    # TIME UNTIL FOLLOWUP IS SENT AFTER NOTIFY
+    run_time = datetime.now() + timedelta(seconds=2)
     scheduler.add_job(func=call_followup, trigger="date", run_date=run_time)
 
     return current_user
@@ -98,7 +98,7 @@ def followup_user():
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"Hi <@{current_user}>! Test 1 Did you attend the general meeting?"
+                    "text": f"Hi <@{current_user}>! \nDid you attend your roundtable meeting?"
                 }
             },
             {
@@ -163,9 +163,9 @@ def handle_interactions():
                 text="✅ Great, you're marked as attended! You've been rotated out."
             )
 
-            # Notify the next person after x time
-            time.sleep(10)
-            notify_current_user()
+            # TIME UNTIL THE NEXT PERSON IN ROTATION IS NOTIFIED - if rotation occured 
+            #time.sleep(10)
+            #notify_current_user()
 
         else:
             client.chat_postMessage(
@@ -178,6 +178,11 @@ def handle_interactions():
             channel=user_id,
             text="❌ No problem! You’ll stay in the rotation for next time."
         )
+        
+
+    # TIME UNTIL THE NEXT PERSON IN ROTATION IS NOTIFIED 
+    time.sleep(10)
+    notify_current_user()
 
     return "", 200
 
@@ -206,6 +211,15 @@ def schedule_notifications():
         f"✅ Scheduled notify at {notify_time.strftime('%H:%M:%S')} and "
         f"follow-up at {followup_time.strftime('%H:%M:%S')}", 200
     )
+
+@app.route("/start-roundtable", methods=["POST"])
+def start_roundtable():
+    print("✅ Slash command received!")
+
+    # Optionally trigger logic here (like notify)
+    notify_current_user()
+
+    return "✅ Roundtable started and person notified!", 200
 
 
 # 🔸 Entry point
