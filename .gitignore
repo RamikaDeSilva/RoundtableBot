@@ -1,3 +1,10 @@
+#env
+.env 
+
+# rotation data (never commit real IDs)
 rotation_data.json
-rotation_data.json
-.env
+rotation_data.private.json
+
+# rotation_data.json
+# rotation_data.json
+# .env
