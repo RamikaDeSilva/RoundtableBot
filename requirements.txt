@@ -1,0 +1,6 @@
+Flask==3.*
+slackclient==2.*
+gunicorn==21.*
+apscheduler==3.*
+python-dotenv==1.*
+requests==2.*

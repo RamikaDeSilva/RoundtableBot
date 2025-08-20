@@ -1,5 +1,7 @@
 #env
 .env 
+__pycache__/
+*.pyc
 
 # rotation data (never commit real IDs)
 rotation_data.json
