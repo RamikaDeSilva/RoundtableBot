@@ -21,6 +21,8 @@ load_dotenv()
 # Create Flask app
 app = Flask(__name__)
 
+DATA_FILE = os.getenv("ROUND_TABLE_DATA_FILE", "rotation_data.json")
+
 # Set up Slack event adapter for receiving actions via endpoint /slack/events
 slack_event_adapter = SlackEventAdapter(
     os.environ['SIGNING_SECRET'], '/slack/events', app
@@ -45,12 +47,24 @@ def test_message():
 
 # Read rotation data from JSON file
 def load_rotation_data():
-    with open("rotation_data.json", "r") as file:
+    # with open("rotation_data.json", "r") as file:
+    #     return json.load(file)
+    path = DATA_FILE
+    if not os.path.exists(path):
+        # fall back to example if no private file
+        if os.path.exists("rotation_data.json.example"):
+            with open("rotation_data.json.example", "r") as file:
+                return json.load(file)
+        return {"members": [], "current_index": 0}
+    with open(path, "r") as file:
         return json.load(file)
     
 # Save rotation data back to the file
 def save_rotation_data(data):
-    with open("rotation_data.json", "w") as file:
+    # with open("rotation_data.json", "w") as file:
+    #     json.dump(data, file, indent=2)
+    path = DATA_FILE
+    with open(path, "w") as file:
         json.dump(data, file, indent=2)
 
 
