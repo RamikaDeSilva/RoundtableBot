@@ -1,6 +1,7 @@
 Flask==3.*
-slackclient==2.*
 gunicorn==21.*
+slackeventsapi==3.*
+slackclient==2.*        # you import `slack` (v2 client)
 apscheduler==3.*
 python-dotenv==1.*
 requests==2.*
