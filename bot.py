@@ -14,6 +14,7 @@ import hashlib
 import hmac
 
 import time
+from datetime import datetime, timedelta, timezone
 
 # Load .env variables
 load_dotenv()
@@ -66,6 +67,69 @@ def save_rotation_data(data):
     path = DATA_FILE
     with open(path, "w") as file:
         json.dump(data, file, indent=2)
+
+
+
+# import pytz; TZ = pytz.timezone("America/Vancouver")
+
+scheduler = BackgroundScheduler(timezone=TZ)
+scheduler.start()
+TZ = timezone.utc
+
+REMINDER_HOUR = int(os.environ.get("REMINDER_HOUR", 16))  # 16:00 UTC (~9am PT)
+REMINDER_MIN  = int(os.environ.get("REMINDER_MIN", 0))
+
+def rotate_to_next_and_notify():
+    """Advance to the next person in rotation and notify them."""
+    data = load_rotation_data()
+    if not data.get("members"):
+        return None
+    data["current_index"] = (data["current_index"] + 1) % len(data["members"])
+    save_rotation_data(data)
+    return notify_current_user()  # this will DM the new current user
+
+def _anchor_datetimes(first_tuesday: datetime):
+    """Return the first Monday (reminder) and first Wednesday (rotate) datetimes at the configured time."""
+    tues = first_tuesday.astimezone(TZ).replace(second=0, microsecond=0)
+    mon  = (tues - timedelta(days=1)).replace(hour=REMINDER_HOUR, minute=REMINDER_MIN)
+    wed  = (tues + timedelta(days=1)).replace(hour=REMINDER_HOUR, minute=REMINDER_MIN)
+
+    now = datetime.now(TZ)
+    while mon <= now:
+        # move both anchors forward in lockstep (2-week cadence)
+        mon += timedelta(weeks=2)
+        wed += timedelta(weeks=2)
+    return mon, wed
+
+def schedule_biweekly_roundtable():
+    first_tuesday = datetime(2025, 8, 12, 9, 0, tzinfo=TZ)
+    first_mon, first_wed = _anchor_datetimes(first_tuesday)
+
+    def monday_reminder():
+        notify_current_user()
+
+    def wednesday_rotate_and_notify():
+        rotate_to_next_and_notify()
+
+    scheduler.add_job(
+        monday_reminder,
+        trigger="interval",
+        weeks=2,
+        next_run_time=first_mon,
+        id="biweekly_monday_reminder",
+        replace_existing=True,
+    )
+
+    scheduler.add_job(
+        wednesday_rotate_and_notify,
+        trigger="interval",
+        weeks=2,
+        next_run_time=first_wed,
+        id="biweekly_wednesday_rotate",
+        replace_existing=True,
+    )
+
+schedule_biweekly_roundtable()
 
 
 def notify_current_user():
@@ -204,13 +268,14 @@ def handle_interactions():
 scheduler = BackgroundScheduler()
 scheduler.start()
 
-def call_notify():
-    print("📤 Running notify...")
-    requests.get("http://localhost:5002/notify")
+#LOCAL HOST SETUP - USE WHEN SERVER DOWN
+# def call_notify():
+#     print("📤 Running notify...")
+#     requests.get("http://localhost:5002/notify")
 
-def call_followup():
-    print("📤 Running follow-up...")
-    requests.get("http://localhost:5002/followup")
+# def call_followup():
+#     print("📤 Running follow-up...")
+#     requests.get("http://localhost:5002/followup")
 
 @app.route("/start-roundtable", methods=["POST"])
 def start_roundtable():
@@ -221,6 +286,9 @@ def start_roundtable():
 
     return "✅ Roundtable started and person notified!", 200
 
+@app.get("/healthz")
+def healthz():
+    return "ok", 200
 
 # 🔸 Entry point
 # if __name__ == "__main__":
