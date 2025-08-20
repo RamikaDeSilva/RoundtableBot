@@ -198,20 +198,6 @@ def call_followup():
     print("📤 Running follow-up...")
     requests.get("http://localhost:5002/followup")
 
-@app.route("/schedule", methods=["GET"])
-def schedule_notifications():
-    now = datetime.now()
-    notify_time = now + timedelta(seconds=5)
-    followup_time = now + timedelta(seconds=35)
-
-    scheduler.add_job(func=call_notify, trigger="date", run_date=notify_time)
-    scheduler.add_job(func=call_followup, trigger="date", run_date=followup_time)
-
-    return (
-        f"✅ Scheduled notify at {notify_time.strftime('%H:%M:%S')} and "
-        f"follow-up at {followup_time.strftime('%H:%M:%S')}", 200
-    )
-
 @app.route("/start-roundtable", methods=["POST"])
 def start_roundtable():
     print("✅ Slash command received!")
