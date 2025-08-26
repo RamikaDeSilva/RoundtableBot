@@ -274,8 +274,6 @@ def handle_interactions():
     return "", 200
 
 
-scheduler.start()
-
 #LOCAL HOST SETUP - USE WHEN SERVER DOWN
 # def call_notify():
 #     print("📤 Running notify...")
