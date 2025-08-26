@@ -72,9 +72,10 @@ def save_rotation_data(data):
 
 # import pytz; TZ = pytz.timezone("America/Vancouver")
 
+TZ = timezone.utc
 scheduler = BackgroundScheduler(timezone=TZ)
 scheduler.start()
-TZ = timezone.utc
+
 
 REMINDER_HOUR = int(os.environ.get("REMINDER_HOUR", 16))  # 16:00 UTC (~9am PT)
 REMINDER_MIN  = int(os.environ.get("REMINDER_MIN", 0))
