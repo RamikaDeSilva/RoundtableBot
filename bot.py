@@ -260,13 +260,20 @@ def handle_interactions():
         
 
     # TIME UNTIL THE NEXT PERSON IN ROTATION IS NOTIFIED 
-    time.sleep(10)
-    notify_current_user()
+    # time.sleep(10)
+    # notify_current_user()
 
+    run_at = datetime.now(TZ) + timedelta(seconds=10)
+    scheduler.add_job(
+        func=notify_current_user,
+        trigger="date",
+        run_date=run_at,
+        id=f"notify_next_{int(run_at.timestamp())}",   # unique id
+        replace_existing=False
+    )
     return "", 200
 
 
-scheduler = BackgroundScheduler()
 scheduler.start()
 
 #LOCAL HOST SETUP - USE WHEN SERVER DOWN
@@ -295,5 +302,5 @@ def healthz():
 # if __name__ == "__main__":
 #     app.run(debug=True, port=5002)
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5002))  # fallback to 5000 locally
+    port = int(os.environ.get("PORT", 5002))  # fallback to 5002 locally
     app.run(host="0.0.0.0", port=port)
