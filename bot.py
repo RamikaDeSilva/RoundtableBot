@@ -36,6 +36,43 @@ client = slack.WebClient(token=os.environ['SLACK_TOKEN'])
 BOT_ID = client.api_call("auth.test")["user_id"]
 
 
+def send_followup():
+    data = load_rotation_data()
+    if not data.get("members"):
+        return None
+
+    index = data["current_index"]
+    current_user = data["members"][index]
+
+    dm = client.conversations_open(users=current_user)
+    dm_channel = dm["channel"]["id"]
+
+    client.chat_postMessage(
+        channel=dm_channel,
+        text="Meeting check-in time!",
+        blocks=[
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Hi <@{current_user}>!\nDid you attend your roundtable meeting?"
+                }
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {"type": "button", "text": {"type": "plain_text", "text": "Yes ✅"},
+                     "style": "primary", "value": current_user, "action_id": "attended_yes"},
+                    {"type": "button", "text": {"type": "plain_text", "text": "No ❌"},
+                     "style": "danger", "value": current_user, "action_id": "attended_no"}
+                ]
+            }
+        ]
+    )
+    return current_user
+
+
+
 # 🔹 TEST ROUTE: Sends a message to a Slack channel
 @app.route("/test", methods=["GET"])
 def test_message():
@@ -147,8 +184,17 @@ def notify_current_user():
     )
 
     # TIME UNTIL FOLLOWUP IS SENT AFTER NOTIFY
-    run_time = datetime.now() + timedelta(seconds=2)
-    scheduler.add_job(func=call_followup, trigger="date", run_date=run_time)
+    # run_time = datetime.now() + timedelta(seconds=2)
+    # scheduler.add_job(func=call_followup, trigger="date", run_date=run_time)
+
+    run_time = datetime.now(TZ) + timedelta(seconds=2)
+    scheduler.add_job(
+        func=send_followup,
+        trigger="date",
+        run_date=run_time,
+        id=f"followup_{int(run_time.timestamp())}",
+        replace_existing=False
+    )
 
     return current_user
 
@@ -162,45 +208,46 @@ def notify_route():
 #message sent after the meeting:
 @app.route("/followup", methods=["GET"])
 def followup_user():
-    data = load_rotation_data()
-    index = data["current_index"]
-    current_user = data["members"][index]
+    user = send_followup()
+    # data = load_rotation_data()
+    # index = data["current_index"]
+    # current_user = data["members"][index]
 
-    dm = client.conversations_open(users=current_user)
-    dm_channel = dm["channel"]["id"]
+    # dm = client.conversations_open(users=current_user)
+    # dm_channel = dm["channel"]["id"]
 
-    client.chat_postMessage(
-        channel=dm_channel,
-        text="Meeting check-in time!",
-        blocks=[
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"Hi <@{current_user}>! \nDid you attend your roundtable meeting?"
-                }
-            },
-            {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "text": {"type": "plain_text", "text": "Yes ✅"},
-                        "style": "primary",
-                        "value": current_user,
-                        "action_id": "attended_yes"
-                    },
-                    {
-                        "type": "button",
-                        "text": {"type": "plain_text", "text": "No ❌"},
-                        "style": "danger",
-                        "value": current_user,
-                        "action_id": "attended_no"
-                    }
-                ]
-            }
-        ]
-    )
+    # client.chat_postMessage(
+    #     channel=dm_channel,
+    #     text="Meeting check-in time!",
+    #     blocks=[
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": f"Hi <@{current_user}>! \nDid you attend your roundtable meeting?"
+    #             }
+    #         },
+    #         {
+    #             "type": "actions",
+    #             "elements": [
+    #                 {
+    #                     "type": "button",
+    #                     "text": {"type": "plain_text", "text": "Yes ✅"},
+    #                     "style": "primary",
+    #                     "value": current_user,
+    #                     "action_id": "attended_yes"
+    #                 },
+    #                 {
+    #                     "type": "button",
+    #                     "text": {"type": "plain_text", "text": "No ❌"},
+    #                     "style": "danger",
+    #                     "value": current_user,
+    #                     "action_id": "attended_no"
+    #                 }
+    #             ]
+    #         }
+    #     ]
+    # )
 
     return f"Follow-up sent to <@{current_user}>.", 200
 
